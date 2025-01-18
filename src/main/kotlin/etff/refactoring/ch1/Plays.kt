@@ -18,8 +18,8 @@ data class Play(
     val type: PlayType,
 )
 
-object Plays {
-    private val items = JsonLoader().load<Map<String, Play>>("src/main/resources/plays.json")
-
+class Plays(
+    private val items: Map<String, Play>,
+) {
     fun playFor(playID: String) = items[playID] ?: throw Exception("연극을 찾을 수 없습니다.")
 }

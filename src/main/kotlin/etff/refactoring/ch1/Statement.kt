@@ -1,46 +1,91 @@
+@file:Suppress("ktlint:standard:no-wildcard-imports")
+
 package etff.refactoring.ch1
 
-import etff.refactoring.ch1.Plays.playFor
+import java.text.NumberFormat
+import java.util.Locale
 import kotlin.math.floor
 
 class Statement {
-    fun statement(invoice: Invoice): String {
-        var totalAmount = 0
-        var volumeCredit = 0
+    fun statement(
+        invoice: Invoice,
+        plays: Plays,
+    ): String {
         val result = StringBuilder("청구내역 (고객명: ${invoice.customer})\n")
         for (perf in invoice.performances) {
-            // 포인트를 적립한다.
-            volumeCredit += (perf.audience - 30).coerceAtLeast(0)
-
-            // 희극 관객 5명마다 추가 포인트를 제공한다.
-            if (playFor(perf.playID).type == PlayType.COMEDY) {
-                volumeCredit += floor(perf.audience.toDouble() / 5).toInt()
-            }
-
             // 청구 내역을 출력한다.
             result.append(
-                "${playFor(perf.playID).name}: $${
-                    amountFor(perf) / 100
+                "${playFor(perf, plays).name}: ${
+                    usd(amountFor(perf, plays) / 100)
                 } ${perf.audience}석\n",
             )
-            totalAmount += amountFor(perf)
         }
-
-        result.append(String.format("총액: $%d\n", totalAmount / 100))
-        result.append(String.format("적립 포인트: %d점", volumeCredit))
+        result.append(String.format("총액: %s\n", usd(totalAmount(invoice, plays) / 100.0)))
+        result.append(String.format("적립 포인트: %d점", totalVolumeCredits(invoice, plays)))
         return result.toString()
     }
 
-    private fun amountFor(aPerformance: Performance): Int {
+    private fun playFor(
+        aPerformance: Performance,
+        plays: Plays,
+    ) = plays.playFor(aPerformance.playID)
+
+    private fun totalAmount(
+        invoice: Invoice,
+        plays: Plays,
+    ): Int {
+        var result = 0
+        for (perf in invoice.performances) {
+            result += amountFor(perf, plays)
+        }
+        return result
+    }
+
+    private fun totalVolumeCredits(
+        invoice: Invoice,
+        plays: Plays,
+    ): Int {
+        var result = 0
+        for (perf in invoice.performances) {
+            result += volumeCreditsFor(perf, plays)
+        }
+        return result
+    }
+
+    private fun volumeCreditsFor(
+        aPerformance: Performance,
+        plays: Plays,
+    ): Int {
+        var result = 0
+        result += (aPerformance.audience - 30).coerceAtLeast(0)
+        if (playFor(aPerformance, plays).type == PlayType.COMEDY) {
+            result += floor(aPerformance.audience.toDouble() / 5).toInt()
+        }
+        return result
+    }
+
+    val usd: (Number) -> String = { number ->
+        NumberFormat
+            .getCurrencyInstance(Locale.US)
+            .apply {
+                minimumFractionDigits = 2
+            }.format(number)
+    }
+
+    private fun amountFor(
+        aPerformance: Performance,
+        plays: Plays,
+    ): Int {
         var result = 0
 
-        when (playFor(aPerformance.playID).type) {
+        when (playFor(aPerformance, plays).type) {
             PlayType.TRAGEDY -> {
                 result = 40000
                 if (aPerformance.audience > 30) {
                     result += 1000 * (aPerformance.audience - 30)
                 }
             }
+
             PlayType.COMEDY -> {
                 result = 30000
                 if (aPerformance.audience > 20) {
@@ -48,6 +93,7 @@ class Statement {
                 }
                 result += 300 * aPerformance.audience
             }
+
             else -> throw Exception("알 수 없는 장르")
         }
         return result
