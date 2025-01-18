@@ -3,21 +3,17 @@ package etff.refactoring.ch1
 import kotlin.math.floor
 
 class Statement {
-    fun statement(
-        invoice: Invoice,
-        plays: Plays,
-    ): String {
+    fun statement(invoice: Invoice): String {
         var totalAmount = 0
         var volumeCredit = 0
         val result = StringBuilder("청구내역 (고객명: ${invoice.customer})\n")
         for (performance in invoice.performances) {
-            val play: Play = plays.get(performance) ?: throw Exception("연극을 찾을 수 없습니다.")
-            val thisAmount = amountFor(performance, play)
+            val thisAmount = amountFor(performance)
             // 포인트를 적립한다.
             volumeCredit += (performance.audience - 30).coerceAtLeast(0)
 
             // 희극 관객 5명마다 추가 포인트를 제공한다.
-            if (play.type == PlayType.COMEDY) {
+            if (playFor(performance).type == PlayType.COMEDY) {
                 volumeCredit += floor(performance.audience.toDouble() / 5).toInt()
             }
 
@@ -25,7 +21,7 @@ class Statement {
             result.append(
                 java.lang.String.format(
                     "%s: $%d %d석\n",
-                    play.name,
+                    playFor(performance).name,
                     thisAmount / 100,
                     performance.audience,
                 ),
@@ -38,13 +34,12 @@ class Statement {
         return result.toString()
     }
 
-    private fun amountFor(
-        aPerformance: Performance,
-        play: Play,
-    ): Int {
+    private fun playFor(performance: Performance) = Plays.get(performance.playID) ?: throw Exception("연극을 찾을 수 없습니다.")
+
+    private fun amountFor(aPerformance: Performance): Int {
         var result = 0
 
-        when (play.type) {
+        when (playFor(aPerformance).type) {
             PlayType.TRAGEDY -> {
                 result = 40000
                 if (aPerformance.audience > 30) {

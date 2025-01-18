@@ -18,8 +18,8 @@ data class Play(
     val type: PlayType,
 )
 
-class Plays(
-    private val playMap: Map<String, Play>,
-) {
-    fun get(performance: Performance): Play? = playMap[performance.playID]
+object Plays {
+    private val items = JsonLoader().load<Map<String, Play>>("src/main/resources/plays.json")
+
+    fun get(playID: String) = items[playID]
 }
