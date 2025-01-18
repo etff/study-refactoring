@@ -21,5 +21,5 @@ data class Play(
 object Plays {
     private val items = JsonLoader().load<Map<String, Play>>("src/main/resources/plays.json")
 
-    fun get(playID: String) = items[playID]
+    fun playFor(playID: String) = items[playID] ?: throw Exception("연극을 찾을 수 없습니다.")
 }

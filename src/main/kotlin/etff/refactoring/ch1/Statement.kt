@@ -1,5 +1,6 @@
 package etff.refactoring.ch1
 
+import etff.refactoring.ch1.Plays.playFor
 import kotlin.math.floor
 
 class Statement {
@@ -7,26 +8,22 @@ class Statement {
         var totalAmount = 0
         var volumeCredit = 0
         val result = StringBuilder("청구내역 (고객명: ${invoice.customer})\n")
-        for (performance in invoice.performances) {
-            val thisAmount = amountFor(performance)
+        for (perf in invoice.performances) {
             // 포인트를 적립한다.
-            volumeCredit += (performance.audience - 30).coerceAtLeast(0)
+            volumeCredit += (perf.audience - 30).coerceAtLeast(0)
 
             // 희극 관객 5명마다 추가 포인트를 제공한다.
-            if (playFor(performance).type == PlayType.COMEDY) {
-                volumeCredit += floor(performance.audience.toDouble() / 5).toInt()
+            if (playFor(perf.playID).type == PlayType.COMEDY) {
+                volumeCredit += floor(perf.audience.toDouble() / 5).toInt()
             }
 
             // 청구 내역을 출력한다.
             result.append(
-                java.lang.String.format(
-                    "%s: $%d %d석\n",
-                    playFor(performance).name,
-                    thisAmount / 100,
-                    performance.audience,
-                ),
+                "${playFor(perf.playID).name}: $${
+                    amountFor(perf) / 100
+                } ${perf.audience}석\n",
             )
-            totalAmount += thisAmount
+            totalAmount += amountFor(perf)
         }
 
         result.append(String.format("총액: $%d\n", totalAmount / 100))
@@ -34,12 +31,10 @@ class Statement {
         return result.toString()
     }
 
-    private fun playFor(performance: Performance) = Plays.get(performance.playID) ?: throw Exception("연극을 찾을 수 없습니다.")
-
     private fun amountFor(aPerformance: Performance): Int {
         var result = 0
 
-        when (playFor(aPerformance).type) {
+        when (playFor(aPerformance.playID).type) {
             PlayType.TRAGEDY -> {
                 result = 40000
                 if (aPerformance.audience > 30) {
