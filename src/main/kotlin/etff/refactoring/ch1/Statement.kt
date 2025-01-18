@@ -11,27 +11,8 @@ class Statement {
         var volumeCredit = 0
         val result = StringBuilder("청구내역 (고객명: ${invoice.customer})\n")
         for (performance in invoice.performances) {
-            val play: Play? = plays.get(performance)
-            var thisAmount = 0
-
-            when (play?.type) {
-                PlayType.TRAGEDY -> {
-                    thisAmount = 40000
-                    if (performance.audience > 30) {
-                        thisAmount += 1000 * (performance.audience - 30)
-                    }
-                }
-
-                PlayType.COMEDY -> {
-                    thisAmount = 30000
-                    if (performance.audience > 20) {
-                        thisAmount += 10000 + 500 * (performance.audience - 20)
-                    }
-                    thisAmount += 300 * performance.audience
-                }
-
-                else -> throw Exception("알 수 없는 장르")
-            }
+            val play: Play = plays.get(performance) ?: throw Exception("연극을 찾을 수 없습니다.")
+            val thisAmount = amountFor(performance, play)
             // 포인트를 적립한다.
             volumeCredit += (performance.audience - 30).coerceAtLeast(0)
 
@@ -55,5 +36,30 @@ class Statement {
         result.append(String.format("총액: $%d\n", totalAmount / 100))
         result.append(String.format("적립 포인트: %d점", volumeCredit))
         return result.toString()
+    }
+
+    private fun amountFor(
+        aPerformance: Performance,
+        play: Play,
+    ): Int {
+        var result = 0
+
+        when (play.type) {
+            PlayType.TRAGEDY -> {
+                result = 40000
+                if (aPerformance.audience > 30) {
+                    result += 1000 * (aPerformance.audience - 30)
+                }
+            }
+            PlayType.COMEDY -> {
+                result = 30000
+                if (aPerformance.audience > 20) {
+                    result += 10000 + 500 * (aPerformance.audience - 20)
+                }
+                result += 300 * aPerformance.audience
+            }
+            else -> throw Exception("알 수 없는 장르")
+        }
+        return result
     }
 }
