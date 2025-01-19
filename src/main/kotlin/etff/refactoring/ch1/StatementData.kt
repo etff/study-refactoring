@@ -1,7 +1,5 @@
 package etff.refactoring.ch1
 
-import kotlin.math.floor
-
 data class StatementData(
     val customer: String,
     val performances: List<Performance>,
@@ -21,47 +19,13 @@ data class StatementData(
         performance: Performance,
         plays: Plays,
     ) {
-        _play = playFor(performance, plays)
-        _amount = amountFor(performance, plays)
-        _volumeCredits = volumeCreditsFor(performance)
+        val calculator =
+            PerformanceCalculator.createPerformanceCalculator(performance, playFor(performance, plays = plays))
+        _play = calculator.play
+        _amount = calculator.amount()
+        _volumeCredits = calculator.volumeCredits()
         _totalAmount = totalAmount()
         _totalVolumeCredits = totalVolumeCredits()
-    }
-
-    private fun amountFor(
-        aPerformance: Performance,
-        plays: Plays,
-    ): Int {
-        var result = 0
-
-        when (playFor(aPerformance, plays).type) {
-            PlayType.TRAGEDY -> {
-                result = 40000
-                if (aPerformance.audience > 30) {
-                    result += 1000 * (aPerformance.audience - 30)
-                }
-            }
-
-            PlayType.COMEDY -> {
-                result = 30000
-                if (aPerformance.audience > 20) {
-                    result += 10000 + 500 * (aPerformance.audience - 20)
-                }
-                result += 300 * aPerformance.audience
-            }
-
-            else -> throw Exception("알 수 없는 장르")
-        }
-        return result
-    }
-
-    private fun volumeCreditsFor(aPerformance: Performance): Int {
-        var result = 0
-        result += (aPerformance.audience - 30).coerceAtLeast(0)
-        if (play.type == PlayType.COMEDY) {
-            result += floor(aPerformance.audience.toDouble() / 5).toInt()
-        }
-        return result
     }
 
     private fun totalVolumeCredits(): Int {
