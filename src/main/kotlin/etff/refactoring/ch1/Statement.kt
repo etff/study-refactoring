@@ -4,64 +4,70 @@ package etff.refactoring.ch1
 
 import java.text.NumberFormat
 import java.util.Locale
-import kotlin.math.floor
 
 class Statement {
+    fun htmlStatement(
+        invoice: Invoice,
+        plays: Plays,
+    ): String =
+        renderHtml(
+            StatementData(
+                invoice.customer,
+                invoice.performances.map { it.copy() },
+            ),
+            plays,
+        )
+
+    private fun renderHtml(
+        statementData: StatementData,
+        plays: Plays,
+    ): String {
+        val result = StringBuilder("<h1>청구내역 (고객명: ${statementData.customer})</h1>\n")
+        result.append("<table>\n")
+        result.append("<tr><th>연극</th><th>좌석 수</th><th>금액</th></tr>")
+        for (perf in statementData.performances) {
+            statementData.enrichPerformance(perf, plays)
+            result.append(
+                "<tr><td>${statementData.play.name}</td><td>${perf.audience}석</td><td>${usd(
+                    statementData.amount / 100,
+                )}</td></tr>\n",
+            )
+        }
+        result.append("</table>\n")
+        result.append("<p>총액: <em>${usd(statementData.totalAmount / 100.0)}</em></p>\n")
+        result.append("<p>적립 포인트: <em>${statementData.totalVolumeCredits}</em>점</p>\n")
+        return result.toString()
+    }
+
     fun statement(
         invoice: Invoice,
         plays: Plays,
     ): String {
-        val result = StringBuilder("청구내역 (고객명: ${invoice.customer})\n")
-        for (perf in invoice.performances) {
+        val statementData =
+            StatementData(
+                invoice.customer,
+                invoice.performances.map { it.copy() },
+            )
+        return renderPlainText(statementData, plays)
+    }
+
+    private fun renderPlainText(
+        statementData: StatementData,
+        plays: Plays,
+    ): String {
+        val result = StringBuilder("청구내역 (고객명: ${statementData.customer})\n")
+        for (perf in statementData.performances) {
+            statementData.enrichPerformance(perf, plays)
             // 청구 내역을 출력한다.
             result.append(
-                "${playFor(perf, plays).name}: ${
-                    usd(amountFor(perf, plays) / 100)
+                "${statementData.play.name}: ${
+                    usd(statementData.amount / 100)
                 } ${perf.audience}석\n",
             )
         }
-        result.append(String.format("총액: %s\n", usd(totalAmount(invoice, plays) / 100.0)))
-        result.append(String.format("적립 포인트: %d점", totalVolumeCredits(invoice, plays)))
+        result.append(String.format("총액: %s\n", usd(statementData.totalAmount / 100.0)))
+        result.append(String.format("적립 포인트: %d점", statementData.totalVolumeCredits))
         return result.toString()
-    }
-
-    private fun playFor(
-        aPerformance: Performance,
-        plays: Plays,
-    ) = plays.playFor(aPerformance.playID)
-
-    private fun totalAmount(
-        invoice: Invoice,
-        plays: Plays,
-    ): Int {
-        var result = 0
-        for (perf in invoice.performances) {
-            result += amountFor(perf, plays)
-        }
-        return result
-    }
-
-    private fun totalVolumeCredits(
-        invoice: Invoice,
-        plays: Plays,
-    ): Int {
-        var result = 0
-        for (perf in invoice.performances) {
-            result += volumeCreditsFor(perf, plays)
-        }
-        return result
-    }
-
-    private fun volumeCreditsFor(
-        aPerformance: Performance,
-        plays: Plays,
-    ): Int {
-        var result = 0
-        result += (aPerformance.audience - 30).coerceAtLeast(0)
-        if (playFor(aPerformance, plays).type == PlayType.COMEDY) {
-            result += floor(aPerformance.audience.toDouble() / 5).toInt()
-        }
-        return result
     }
 
     val usd: (Number) -> String = { number ->
@@ -70,32 +76,5 @@ class Statement {
             .apply {
                 minimumFractionDigits = 2
             }.format(number)
-    }
-
-    private fun amountFor(
-        aPerformance: Performance,
-        plays: Plays,
-    ): Int {
-        var result = 0
-
-        when (playFor(aPerformance, plays).type) {
-            PlayType.TRAGEDY -> {
-                result = 40000
-                if (aPerformance.audience > 30) {
-                    result += 1000 * (aPerformance.audience - 30)
-                }
-            }
-
-            PlayType.COMEDY -> {
-                result = 30000
-                if (aPerformance.audience > 20) {
-                    result += 10000 + 500 * (aPerformance.audience - 20)
-                }
-                result += 300 * aPerformance.audience
-            }
-
-            else -> throw Exception("알 수 없는 장르")
-        }
-        return result
     }
 }
